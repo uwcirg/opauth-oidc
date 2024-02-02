@@ -1,14 +1,14 @@
 {
-	"name": "opauth/google",
-	"description": "Google strategy for Opauth",
-	"keywords": ["authentication","auth","google"],
+	"name": "opauth/oidc",
+	"description": "OpenID Connect strategy for Opauth",
+	"keywords": ["authentication","auth","oidc"],
 	"homepage": "http://opauth.org",
 	"license": "MIT",
 	"authors": [
 		{
-			"name": "U-Zyn Chua",
-			"email": "chua@uzyn.com",
-			"homepage": "http://uzyn.com"
+			"name": "UW CIRG",
+			"email": "help@cirg.uw.edu",
+			"homepage": "http://cirg.uw.edu"
 		}
 	],
 	"require": {
