@@ -52,69 +52,69 @@ class OidcStrategy extends OpauthStrategy{
      * Internal callback, after OAuth
      */
     public function oauth2callback(){
-        if (array_key_exists('code', $_GET) && !empty($_GET['code'])){
-            $code = $_GET['code'];
-            $params = array(
-                'code' => $code,
-                'client_id' => $this->strategy['client_id'],
-                'client_secret' => $this->strategy['client_secret'],
-                'redirect_uri' => $this->strategy['redirect_uri'],
-                'grant_type' => 'authorization_code'
-            );
-            $response = $this->serverPost(
-                $this->strategy['token_endpoint'],
-                $params,
-                null,
-                $response_headers
-            );
-
-            $results = json_decode($response);
-
-            if (!empty($results) && !empty($results->access_token)){
-                $userinfo = $this->userinfo($results->access_token);
-                $this->auth = array(
-                    'sub' => $userinfo['sub'],
-                    'info' => array(),
-                    'credentials' => array(
-                        'token' => $results->access_token,
-                        'expires' => date('c', time() + $results->expires_in)
-                    ),
-                    'raw' => $userinfo
-                );
-
-                if (!empty($results->refresh_token)){
-                    $this->auth['credentials']['refresh_token'] = $results->refresh_token;
-                }
-
-                // map OIDC user attributes to cPRO-specific names
-                $this->mapProfile($userinfo, 'name', 'name');
-                $this->mapProfile($userinfo, 'username', 'preferred_username');
-                $this->mapProfile($userinfo, 'given_name', 'given_name');
-                $this->mapProfile($userinfo, 'family_name', 'family_name');
-                $this->mapProfile($userinfo, 'email_verified', 'email_verified');
-                $this->callback();
-            }
-            else{
-                $error = array(
-                    'code' => 'access_token_error',
-                    'message' => 'Failed when attempting to obtain access token',
-                    'raw' => array(
-                        'response' => $response,
-                        'headers' => $response_headers
-                    )
-                );
-
-                $this->errorCallback($error);
-            }
-        }
-        else{
+        if (!array_key_exists('code', $_GET) or empty($_GET['code'])){
             $error = array(
                 'code' => 'oauth2callback_error',
                 'raw' => $_GET
             );
 
             $this->errorCallback($error);
+            return;
         }
+
+        $code = $_GET['code'];
+        $params = array(
+            'code' => $code,
+            'client_id' => $this->strategy['client_id'],
+            'client_secret' => $this->strategy['client_secret'],
+            'redirect_uri' => $this->strategy['redirect_uri'],
+            'grant_type' => 'authorization_code'
+        );
+        $response = $this->serverPost(
+            $this->strategy['token_endpoint'],
+            $params,
+            null,
+            $response_headers
+        );
+
+        $results = json_decode($response);
+
+        if (empty($results) or empty($results->access_token)){
+            $error = array(
+                'code' => 'access_token_error',
+                'message' => 'Failed when attempting to obtain access token',
+                'raw' => array(
+                    'response' => $response,
+                    'headers' => $response_headers
+                )
+            );
+
+            $this->errorCallback($error);
+            return;
+        }
+
+        $userinfo = $this->userinfo($results->access_token);
+        $this->auth = array(
+            'sub' => $userinfo['sub'],
+            'info' => array(),
+            'credentials' => array(
+                'token' => $results->access_token,
+                'expires' => date('c', time() + $results->expires_in)
+            ),
+            'raw' => $userinfo
+        );
+
+        if (!empty($results->refresh_token)){
+            $this->auth['credentials']['refresh_token'] = $results->refresh_token;
+        }
+
+        // map OIDC user attributes to cPRO-specific names
+        $this->mapProfile($userinfo, 'name', 'name');
+        $this->mapProfile($userinfo, 'username', 'preferred_username');
+        $this->mapProfile($userinfo, 'given_name', 'given_name');
+        $this->mapProfile($userinfo, 'family_name', 'family_name');
+        $this->mapProfile($userinfo, 'email_verified', 'email_verified');
+        $this->callback();
     }
 
     /**
@@ -131,10 +131,7 @@ class OidcStrategy extends OpauthStrategy{
             array('http' => array('header' => "Authorization: Bearer ${access_token}")),
             $response_headers
         );
-        if (!empty($userinfo)){
-            return $this->recursiveGetObjectVars(json_decode($userinfo));
-        }
-        else{
+        if (empty($userinfo)){
             $error = array(
                 'code' => 'userinfo_error',
                 'message' => 'Failed when attempting to query for user information',
@@ -145,6 +142,8 @@ class OidcStrategy extends OpauthStrategy{
             );
 
             $this->errorCallback($error);
+            return;
         }
+        return $this->recursiveGetObjectVars(json_decode($userinfo));
     }
 }
