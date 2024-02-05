@@ -83,7 +83,11 @@ class OidcStrategy extends OpauthStrategy{
             $response_headers
         );
         $response_json = json_decode($response_body);
-        if (empty($response_json) or empty($response_json->access_token)){
+        if (
+            !preg_match('/^HTTP.+200 OK/mi', $response_headers) or
+            empty($response_json) or
+            empty($response_json->access_token)
+        ){
             $error = array(
                 'code' => 'access_token_error',
                 'message' => 'Failed when attempting to obtain access token',
@@ -141,7 +145,10 @@ class OidcStrategy extends OpauthStrategy{
             array('http' => array('header' => "Authorization: Bearer ${access_token}")),
             $response_headers
         );
-        if (empty($userinfo)){
+        if (
+            !preg_match('/^HTTP.+200 OK/mi', $response_headers) or
+            empty($userinfo)
+        ){
             $error = array(
                 'code' => 'userinfo_error',
                 'message' => 'Failed when attempting to query for user information',
