@@ -13,7 +13,13 @@ class OidcStrategy extends OpauthStrategy{
     /**
      * Compulsory config keys, listed as unassociative arrays
      */
-    public $expects = array('client_id', 'client_secret');
+    public $expects = array(
+        'client_id',
+        'client_secret',
+        'authorization_endpoint',
+        'token_endpoint',
+        'userinfo_endpoint',
+    );
 
     /**
      * Optional config keys, without predefining any default values.
@@ -21,9 +27,6 @@ class OidcStrategy extends OpauthStrategy{
     public $optionals = array(
         'redirect_uri',
         'scope',
-        'authorization_endpoint',
-        'token_endpoint',
-        'userinfo_endpoint',
     );
     /**
      * Optional config keys with respective default values, listed as associative arrays
@@ -35,21 +38,22 @@ class OidcStrategy extends OpauthStrategy{
     );
 
     /**
-     * Auth request
+     * Start authorization code request
      */
     public function request(){
-        $params = array(
+        $querystring_params = array(
             'client_id' => $this->strategy['client_id'],
             'redirect_uri' => $this->strategy['redirect_uri'],
             'response_type' => 'code',
             'scope' => $this->strategy['scope']
         );
 
-        $this->clientGet($this->strategy['authorization_endpoint'], $params);
+        CakeLog::write(LOG_DEBUG, "authorization request started; redirecting to IdP");
+        $this->clientGet($this->strategy['authorization_endpoint'], $querystring_params);
     }
 
     /**
-     * Internal callback, after OAuth
+     * Internal callback; handle response to authorization request and request new access token
      */
     public function oauth2callback(){
         if (!array_key_exists('code', $_GET) or empty($_GET['code'])){
@@ -57,34 +61,34 @@ class OidcStrategy extends OpauthStrategy{
                 'code' => 'oauth2callback_error',
                 'raw' => $_GET
             );
-
             $this->errorCallback($error);
             return;
         }
+        CakeLog::write(LOG_DEBUG, "user IdP authentication complete; received authorization code");
 
+        // obtain authorization code (via querystring param) passed from IDP
         $code = $_GET['code'];
-        $params = array(
+        $querystring_params = array(
             'code' => $code,
             'client_id' => $this->strategy['client_id'],
             'client_secret' => $this->strategy['client_secret'],
             'redirect_uri' => $this->strategy['redirect_uri'],
             'grant_type' => 'authorization_code'
         );
-        $response = $this->serverPost(
+        CakeLog::write(LOG_DEBUG, "requesting access token");
+        $response_body = $this->serverPost(
             $this->strategy['token_endpoint'],
-            $params,
+            $querystring_params,
             null,
             $response_headers
         );
-
-        $results = json_decode($response);
-
-        if (empty($results) or empty($results->access_token)){
+        $response_json = json_decode($response_body);
+        if (empty($response_json) or empty($response_json->access_token)){
             $error = array(
                 'code' => 'access_token_error',
                 'message' => 'Failed when attempting to obtain access token',
                 'raw' => array(
-                    'response' => $response,
+                    'response' => $response_body,
                     'headers' => $response_headers
                 )
             );
@@ -93,19 +97,25 @@ class OidcStrategy extends OpauthStrategy{
             return;
         }
 
-        $userinfo = $this->userinfo($results->access_token);
+        CakeLog::write(LOG_DEBUG, "successfully obtained access token");
+        $userinfo = $this->userinfo($response_json->access_token);
+        CakeLog::write(LOG_DEBUG, "retrieved userinfo from IdP");
         $this->auth = array(
             'sub' => $userinfo['sub'],
             'info' => array(),
             'credentials' => array(
-                'token' => $results->access_token,
-                'expires' => date('c', time() + $results->expires_in)
+                'token' => $response_json->access_token,
+                'expires' => date('c', time() + $response_json->expires_in)
             ),
             'raw' => $userinfo
         );
 
-        if (!empty($results->refresh_token)){
-            $this->auth['credentials']['refresh_token'] = $results->refresh_token;
+        if (!empty($response_json->refresh_token)){
+            $this->auth['credentials']['refresh_token'] = $response_json->refresh_token;
+        }
+
+        if (!empty($response_json->id_token)){
+            $this->auth['info']['id_token'] = $response_json->id_token;
         }
 
         // map OIDC user attributes to cPRO-specific names
@@ -124,7 +134,7 @@ class OidcStrategy extends OpauthStrategy{
      * @return array Parsed JSON results
      */
     private function userinfo($access_token){
-        // TODO look from JWT, when available
+        // TODO extract from id token (JWT), when available
         $userinfo = $this->serverGet(
             $this->strategy['userinfo_endpoint'],
             array(),
