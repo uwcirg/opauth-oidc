@@ -113,7 +113,7 @@ class OidcStrategy extends OpauthStrategy{
                 'expires' => date('c', time() + $response_json->expires_in)
             ),
             'raw' => $userinfo
-            // ,'uid' => ?
+            // ,'uid' => ? This is what TruenthStrategy does https://github.com/uwcirg/opauth-truenth/blob/master/TruenthStrategy.php#L124
         );
 
         if (!empty($response_json->refresh_token)){
