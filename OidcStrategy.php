@@ -103,7 +103,8 @@ class OidcStrategy extends OpauthStrategy{
 
         CakeLog::write(LOG_DEBUG, "successfully obtained access token");
         $userinfo = $this->userinfo($response_json->access_token);
-        CakeLog::write(LOG_DEBUG, "retrieved userinfo from IdP");
+        #CakeLog::write(LOG_DEBUG, "retrieved userinfo from IdP");
+        CakeLog::write(LOG_DEBUG, "retrieved userinfo from IdP:" . print_r($userinfo, true));
         $this->auth = array(
             'sub' => $userinfo['sub'],
             'info' => array(),
@@ -112,6 +113,7 @@ class OidcStrategy extends OpauthStrategy{
                 'expires' => date('c', time() + $response_json->expires_in)
             ),
             'raw' => $userinfo
+            // ,'uid' => ?
         );
 
         if (!empty($response_json->refresh_token)){
