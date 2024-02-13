@@ -136,8 +136,13 @@ class OidcStrategy extends OpauthStrategy{
      * @return array Parsed JSON results
      */
     private function userinfo($auth_data){
-        // TODO extract from id token (JWT), when available
-        $userinfo = $this->serverGet(
+        if (isset($this->auth['info']['id_token'])){
+            $id_token = $this->auth['info']['id_token'];
+            $payload = $this->decode_jwt($id_token);
+            CakeLog::write(LOG_DEBUG, 'loaded userinfo from id token');
+            return $this->recursiveGetObjectVars($payload);
+        }
+
         $userinfo_response = $this->serverGet(
             $this->strategy['userinfo_endpoint'],
             array(),
@@ -163,5 +168,16 @@ class OidcStrategy extends OpauthStrategy{
         CakeLog::write(LOG_DEBUG, "retrieved userinfo from IdP");
         return $this->recursiveGetObjectVars(json_decode($userinfo_response));
     }
+
+    /**
+     * Decode and return JWT payload
+     * TODO validate JWT signature
+     * @param string $jwt
+     * @return JWT payload
+     */
+    private function decode_jwt($jwt){
+        list($encoded_header, $encoded_payload, $encoded_signature) = explode(".", $jwt);
+        $payload = json_decode(base64_decode($encoded_payload));
+        return $payload;
     }
 }
