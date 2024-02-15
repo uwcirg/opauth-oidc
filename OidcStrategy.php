@@ -126,6 +126,8 @@ class OidcStrategy extends OpauthStrategy{
         $this->mapProfile($userinfo, 'given_name', 'given_name');
         $this->mapProfile($userinfo, 'family_name', 'family_name');
         $this->mapProfile($userinfo, 'email_verified', 'email_verified');
+        // OpAuth (OpauthAppController.php) requires uid to be populated, to set $request->data['validated']
+        $this->mapProfile($userinfo, 'sub', 'uid');
         $this->callback();
     }
 
