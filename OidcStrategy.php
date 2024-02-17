@@ -122,12 +122,14 @@ class OidcStrategy extends OpauthStrategy{
         // map OIDC user attributes to cPRO-specific names
         $this->mapProfile($userinfo, 'sub', 'sub');
         $this->mapProfile($userinfo, 'name', 'name');
-        $this->mapProfile($userinfo, 'username', 'preferred_username');
-        $this->mapProfile($userinfo, 'given_name', 'given_name');
-        $this->mapProfile($userinfo, 'family_name', 'family_name');
+        $this->mapProfile($userinfo, 'username', 'username');
+        $this->mapProfile($userinfo, 'given_name', 'first_name');
+        $this->mapProfile($userinfo, 'family_name', 'last_name');
         $this->mapProfile($userinfo, 'email_verified', 'email_verified');
+        $this->mapProfile($userinfo, 'email', 'email');
         // OpAuth (OpauthAppController.php) requires uid to be populated, to set $request->data['validated']
         $this->mapProfile($userinfo, 'sub', 'uid');
+        $this->mapProfile($userinfo, 'sub', 'external_id');
         $this->callback();
     }
 
