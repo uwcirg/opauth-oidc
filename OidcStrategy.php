@@ -132,10 +132,10 @@ class OidcStrategy extends OpauthStrategy{
     }
 
     /**
-     * Queries auth API for user info
+     * Collect user data from OIDC tokens, or IdP userinfo endpoint
      *
-     * @param string $access_token
-     * @return array Parsed JSON results
+     * @param array $auth_data
+     * @return array JSON results
      */
     private function userinfo($auth_data){
         if (isset($this->auth['info']['id_token'])){
