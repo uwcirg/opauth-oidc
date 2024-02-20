@@ -128,6 +128,7 @@ class OidcStrategy extends OpauthStrategy{
         $this->mapProfile($userinfo, 'email_verified', 'email_verified');
         // OpAuth (OpauthAppController.php) requires uid to be populated, to set $request->data['validated']
         $this->mapProfile($userinfo, 'sub', 'uid');
+        $this->mapProfile($userinfo['access_token_data'], 'resource_access.account.roles', 'roles');
         $this->callback();
     }
 
@@ -138,11 +139,24 @@ class OidcStrategy extends OpauthStrategy{
      * @return array JSON results
      */
     private function userinfo($auth_data){
+        $userinfo = array();
+
+        // add data from access token - keycloak only adds realm_access.roles and resource_access.account.roles to access token
+        // NB the IdP may change the format of the access token at any time
+        // in OIDC, although the IdP-issued (keycloak) access token is issued to the client, only the resource server is intended to consume it
+        $access_token_data = $this->recursiveGetObjectVars(
+            $this->decode_jwt($auth_data['credentials']['token'])
+        );
+        $userinfo = array_merge($userinfo, array("access_token_data" => $access_token_data));
+        CakeLog::write(LOG_DEBUG, 'loaded auth data from access token');
+
         if (isset($this->auth['info']['id_token'])){
-            $id_token = $this->auth['info']['id_token'];
-            $payload = $this->decode_jwt($id_token);
+            $id_token_data = $this->recursiveGetObjectVars(
+                $this->decode_jwt($this->auth['info']['id_token'])
+            );
+            $userinfo = array_merge($userinfo, $id_token_data);
             CakeLog::write(LOG_DEBUG, 'loaded userinfo from id token');
-            return $this->recursiveGetObjectVars($payload);
+            return $userinfo;
         }
 
         $userinfo_response = $this->serverGet(
