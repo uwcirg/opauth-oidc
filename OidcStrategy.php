@@ -100,34 +100,34 @@ class OidcStrategy extends OpauthStrategy{
             $this->errorCallback($error);
             return;
         }
-
         CakeLog::write(LOG_DEBUG, "successfully obtained access token");
-        $userinfo = $this->userinfo($response_json->access_token);
-        CakeLog::write(LOG_DEBUG, "retrieved userinfo from IdP");
+
         $this->auth = array(
-            'sub' => $userinfo['sub'],
+            'raw' => array(),
             'info' => array(),
             'credentials' => array(
                 'token' => $response_json->access_token,
                 'expires' => date('c', time() + $response_json->expires_in)
             ),
-            'raw' => $userinfo
         );
-
         if (!empty($response_json->refresh_token)){
             $this->auth['credentials']['refresh_token'] = $response_json->refresh_token;
         }
-
         if (!empty($response_json->id_token)){
             $this->auth['info']['id_token'] = $response_json->id_token;
         }
+        $userinfo = $this->userinfo($this->auth);
+        $this->auth['raw'] = $userinfo;
 
         // map OIDC user attributes to cPRO-specific names
+        $this->mapProfile($userinfo, 'sub', 'sub');
         $this->mapProfile($userinfo, 'name', 'name');
         $this->mapProfile($userinfo, 'username', 'preferred_username');
         $this->mapProfile($userinfo, 'given_name', 'given_name');
         $this->mapProfile($userinfo, 'family_name', 'family_name');
         $this->mapProfile($userinfo, 'email_verified', 'email_verified');
+        // OpAuth (OpauthAppController.php) requires uid to be populated, to set $request->data['validated']
+        $this->mapProfile($userinfo, 'sub', 'uid');
         $this->callback();
     }
 
@@ -137,23 +137,29 @@ class OidcStrategy extends OpauthStrategy{
      * @param string $access_token
      * @return array Parsed JSON results
      */
-    private function userinfo($access_token){
-        // TODO extract from id token (JWT), when available
-        $userinfo = $this->serverGet(
+    private function userinfo($auth_data){
+        if (isset($this->auth['info']['id_token'])){
+            $id_token = $this->auth['info']['id_token'];
+            $payload = $this->decode_jwt($id_token);
+            CakeLog::write(LOG_DEBUG, 'loaded userinfo from id token');
+            return $this->recursiveGetObjectVars($payload);
+        }
+
+        $userinfo_response = $this->serverGet(
             $this->strategy['userinfo_endpoint'],
             array(),
-            array('http' => array('header' => "Authorization: Bearer ${access_token}")),
+            array('http' => array('header' => "Authorization: Bearer {$auth_data['credentials']['token']}")),
             $response_headers
         );
         if (
             !preg_match('/^HTTP.+200 OK/mi', $response_headers) or
-            empty($userinfo)
+            empty($userinfo_response)
         ){
             $error = array(
                 'code' => 'userinfo_error',
                 'message' => 'Failed when attempting to query for user information',
                 'raw' => array(
-                    'response' => $userinfo,
+                    'response' => $userinfo_response,
                     'headers' => $response_headers
                 )
             );
@@ -161,6 +167,19 @@ class OidcStrategy extends OpauthStrategy{
             $this->errorCallback($error);
             return;
         }
-        return $this->recursiveGetObjectVars(json_decode($userinfo));
+        CakeLog::write(LOG_DEBUG, "retrieved userinfo from IdP");
+        return $this->recursiveGetObjectVars(json_decode($userinfo_response));
+    }
+
+    /**
+     * Decode and return JWT payload
+     * TODO validate JWT signature
+     * @param string $jwt
+     * @return JWT payload
+     */
+    private function decode_jwt($jwt){
+        list($encoded_header, $encoded_payload, $encoded_signature) = explode(".", $jwt);
+        $payload = json_decode(base64_decode($encoded_payload));
+        return $payload;
     }
 }
