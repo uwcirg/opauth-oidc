@@ -130,7 +130,7 @@ class OidcStrategy extends OpauthStrategy{
         // OpAuth (OpauthAppController.php) requires uid to be populated, to set $request->data['validated']
         $this->mapProfile($userinfo, 'sub', 'uid');
         $this->mapProfile($userinfo, 'sub', 'external_id');
-        $this->mapProfile($userinfo['access_token_data'], 'resource_access.account.roles', 'roles');
+        $this->mapProfile($userinfo['access_token_data'], 'realm_access.roles', 'roles');
         $this->callback();
     }
 
