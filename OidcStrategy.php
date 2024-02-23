@@ -37,6 +37,8 @@ class OidcStrategy extends OpauthStrategy{
         'scope' => 'profile email openid'
     );
 
+    public $hasRefresh = true;
+
     /**
      * Start authorization code request
      */
