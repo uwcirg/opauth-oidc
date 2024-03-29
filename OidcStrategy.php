@@ -7,7 +7,7 @@
  * @package      Opauth.OidcStrategy
  * @license      MIT License
  */
-
+App::uses('DatabaseSessionPlusUserId', 'Datasource/Session');
 class OidcStrategy extends OpauthStrategy{
 
     /**
@@ -134,6 +134,40 @@ class OidcStrategy extends OpauthStrategy{
         $this->mapProfile($userinfo, 'sub', 'external_id');
         $this->mapProfile($userinfo['access_token_data'], 'realm_access.roles', 'roles');
         $this->callback();
+    }
+
+    /**
+     * Keycloak calls this to inform of logout from elsewhere.
+     * URL: /auth/oidc/logoutCallback
+     */
+    public function logoutCallback(){
+        CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "(), just entered.");
+
+        // TODO verify that it's KC calling this...
+
+        $sessionObj = new DatabaseSessionPlusUserId();
+        // TODO to map to user ID...
+        $deleteResult = $sessionObj->deleteByUserId($data['user_id']);
+        CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "(), done.");
+    }
+
+    /**
+     * To be polled by the dhair2 front end
+     * URL: /auth/oidc/authenticationStatusCheck/[userId]
+     * @param $dhair2UserId 
+     * @return true | false
+     */
+    public function authenticationStatusCheck($dhair2UserId){
+        CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "($dhair2UserId), just entered.");
+
+        $sessionObj = new DatabaseSessionPlusUserId();
+        $sessionCount = $sessionObj->find('count',
+            array('conditions' => array('DatabaseSessionPlusUserId.user_id' => $dhair2UserId)));
+        $returnVal = false;
+        if ($sessionCount >= 1) $returnVal = true;
+
+        CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "($dhair2UserId), returning $returnVal.");
+        return $returnVal;
     }
 
     /**
