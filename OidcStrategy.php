@@ -8,6 +8,7 @@
  * @license      MIT License
  */
 App::uses('DatabaseSessionPlusUserId', 'Datasource/Session');
+App::uses('User', 'Model');
 class OidcStrategy extends OpauthStrategy{
 
     /**
@@ -58,6 +59,7 @@ class OidcStrategy extends OpauthStrategy{
      * Internal callback; handle response to authorization request and request new access token
      */
     public function oauth2callback(){
+        CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's what's in _GET:" . print_r($_GET, true) . ", here's what in the request headers:" . print_r(apache_request_headers(), true));
         if (!array_key_exists('code', $_GET) or empty($_GET['code'])){
             $error = array(
                 'code' => 'oauth2callback_error',
@@ -141,24 +143,40 @@ class OidcStrategy extends OpauthStrategy{
      * URL: /auth/oidc/logoutCallback
      */
     public function logoutCallback(){
-        CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "(), just entered.");
+        //CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's what's in _POST:" . print_r($_POST, true) . ", here's what in the request headers:" . print_r(apache_request_headers(), true));
 
-        // TODO verify that it's KC calling this...
+        // TODO verify that it's KC calling this... would be impractical to bluff the sub tho.
+
+        $logout_token = $_POST['logout_token']; //jwt
+
+        // look in 'sub', map to users.external_id
+
+        $jwt_decoded = $this->decode_jwt($logout_token);
+        //CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's what in the decoded jwt:" . print_r($jwt_decoded, true));
+        $sub = $jwt_decoded->sub;
+
+        $userObj = new User();
+        $user = $userObj->find('first', array('conditions' => array('User.external_id' => $sub),
+            'recursive' => -1));
+        //CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), mapped sub $sub to user:" . print_r($user, true));
+        $userId = $user['User']['id'];
 
         $sessionObj = new DatabaseSessionPlusUserId();
-        // TODO to map to user ID...
-        $deleteResult = $sessionObj->deleteByUserId($data['user_id']);
+        $deleteResult = $sessionObj->deleteByUserId($userId);
+
         CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "(), done.");
     }
 
     /**
+     * FIXME use existing dhair2 users/updateTimeout instead - response should indicate that the user is logged out.
      * To be polled by the dhair2 front end
      * URL: /auth/oidc/authenticationStatusCheck/[userId]
      * @param $dhair2UserId 
      * @return true | false
-     */
     public function authenticationStatusCheck($dhair2UserId){
-        CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "($dhair2UserId), just entered.");
+        //CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "($dhair2UserId), just entered.");
+
+$this->Session->read(AppController::ID_KEY)
 
         $sessionObj = new DatabaseSessionPlusUserId();
         $sessionCount = $sessionObj->find('count',
@@ -169,6 +187,7 @@ class OidcStrategy extends OpauthStrategy{
         CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "($dhair2UserId), returning $returnVal.");
         return $returnVal;
     }
+     */
 
     /**
      * Collect user data from OIDC tokens, or IdP userinfo endpoint
