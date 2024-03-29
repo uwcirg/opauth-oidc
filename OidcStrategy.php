@@ -164,7 +164,8 @@ class OidcStrategy extends OpauthStrategy{
         $sessionObj = new DatabaseSessionPlusUserId();
         $deleteResult = $sessionObj->deleteByUserId($userId);
 
-        CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "(), done.");
+        // CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "(), done.");
+        CakeLog::write(LOG_DEBUG, "logged out user $userId by OIDC back-channel logout");
     }
 
     /**
