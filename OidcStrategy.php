@@ -59,7 +59,7 @@ class OidcStrategy extends OpauthStrategy{
      * Internal callback; handle response to authorization request and request new access token
      */
     public function oauth2callback(){
-        CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's what's in _GET:" . print_r($_GET, true) . ", here's what in the request headers:" . print_r(apache_request_headers(), true));
+        // CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's what's in _GET:" . print_r($_GET, true) . ", here's what in the request headers:" . print_r(apache_request_headers(), true));
         if (!array_key_exists('code', $_GET) or empty($_GET['code'])){
             $error = array(
                 'code' => 'oauth2callback_error',
