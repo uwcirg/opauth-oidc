@@ -169,28 +169,6 @@ class OidcStrategy extends OpauthStrategy{
     }
 
     /**
-     * FIXME use existing dhair2 users/updateTimeout instead - response should indicate that the user is logged out.
-     * To be polled by the dhair2 front end
-     * URL: /auth/oidc/authenticationStatusCheck/[userId]
-     * @param $dhair2UserId 
-     * @return true | false
-    public function authenticationStatusCheck($dhair2UserId){
-        //CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "($dhair2UserId), just entered.");
-
-$this->Session->read(AppController::ID_KEY)
-
-        $sessionObj = new DatabaseSessionPlusUserId();
-        $sessionCount = $sessionObj->find('count',
-            array('conditions' => array('DatabaseSessionPlusUserId.user_id' => $dhair2UserId)));
-        $returnVal = false;
-        if ($sessionCount >= 1) $returnVal = true;
-
-        CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "($dhair2UserId), returning $returnVal.");
-        return $returnVal;
-    }
-     */
-
-    /**
      * Collect user data from OIDC tokens, or IdP userinfo endpoint
      *
      * @param array $auth_data
