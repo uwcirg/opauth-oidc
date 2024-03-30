@@ -139,7 +139,7 @@ class OidcStrategy extends OpauthStrategy{
     }
 
     /**
-     * Keycloak calls this to inform of logout from elsewhere.
+     * Keycloak POSTs to this to inform of logout from elsewhere.
      * URL: /auth/oidc/logoutCallback
      */
     public function logoutCallback(){
