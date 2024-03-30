@@ -7,7 +7,8 @@
  * @package      Opauth.OidcStrategy
  * @license      MIT License
  */
-
+App::uses('DatabaseSessionPlusUserId', 'Datasource/Session');
+App::uses('User', 'Model');
 class OidcStrategy extends OpauthStrategy{
 
     /**
@@ -58,6 +59,7 @@ class OidcStrategy extends OpauthStrategy{
      * Internal callback; handle response to authorization request and request new access token
      */
     public function oauth2callback(){
+        // CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's what's in _GET:" . print_r($_GET, true) . ", here's what in the request headers:" . print_r(apache_request_headers(), true));
         if (!array_key_exists('code', $_GET) or empty($_GET['code'])){
             $error = array(
                 'code' => 'oauth2callback_error',
@@ -134,6 +136,36 @@ class OidcStrategy extends OpauthStrategy{
         $this->mapProfile($userinfo, 'sub', 'external_id');
         $this->mapProfile($userinfo['access_token_data'], 'realm_access.roles', 'roles');
         $this->callback();
+    }
+
+    /**
+     * Keycloak POSTs to this to inform of logout from elsewhere.
+     * URL: /auth/oidc/logoutCallback
+     */
+    public function logoutCallback(){
+        //CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's what's in _POST:" . print_r($_POST, true) . ", here's what in the request headers:" . print_r(apache_request_headers(), true));
+
+        // TODO verify that it's KC calling this... would be impractical to bluff the sub tho.
+
+        $logout_token = $_POST['logout_token']; //jwt
+
+        // look in 'sub', map to users.external_id
+
+        $jwt_decoded = $this->decode_jwt($logout_token);
+        //CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's what in the decoded jwt:" . print_r($jwt_decoded, true));
+        $sub = $jwt_decoded->sub;
+
+        $userObj = new User();
+        $user = $userObj->find('first', array('conditions' => array('User.external_id' => $sub),
+            'recursive' => -1));
+        //CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), mapped sub $sub to user:" . print_r($user, true));
+        $userId = $user['User']['id'];
+
+        $sessionObj = new DatabaseSessionPlusUserId();
+        $deleteResult = $sessionObj->deleteByUserId($userId);
+
+        // CakeLog::write(LOG_DEBUG, __CLASS__ ."->". __FUNCTION__ . "(), done.");
+        CakeLog::write(LOG_DEBUG, "logged out user $userId by OIDC back-channel logout");
     }
 
     /**
