@@ -14,7 +14,7 @@ class OidcStrategy extends OpauthStrategy {
     /**
      * Compulsory config keys, listed as unassociative arrays
      */
-    public array $expects = [
+    public ?array $expects = [
         'client_id',
         'client_secret',
         'authorization_endpoint',
@@ -34,7 +34,7 @@ class OidcStrategy extends OpauthStrategy {
      * Optional config keys with respective default values, listed as associative arrays
      * eg. array('scope' => 'email');
      */
-    public array $defaults = [
+    public ?array $defaults = [
         'redirect_uri' => '{complete_url_to_strategy}oauth2callback',
         'scope' => 'profile email openid'
     ];
