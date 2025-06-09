@@ -84,7 +84,7 @@ class OidcStrategy extends OpauthStrategy {
         $response_body = $this->serverPost(
             $this->strategy['token_endpoint'],
             $querystring_params,
-            null,
+            array(),
             $response_headers
         );
         $response_json = json_decode($response_body);
