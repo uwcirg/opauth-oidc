@@ -136,7 +136,7 @@ class OidcStrategy extends OpauthStrategy{
         $this->mapProfile($userinfo, 'sub', 'external_id');
         $this->mapProfile($userinfo['access_token_data'], 'realm_access.roles', 'roles');
 
-        $this->logoutEndpoint();
+        $this->logoutEndpoint($this->auth);
 
         $this->callback();
     }
