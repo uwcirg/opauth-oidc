@@ -20,6 +20,7 @@ class OidcStrategy extends OpauthStrategy{
         'authorization_endpoint',
         'token_endpoint',
         'userinfo_endpoint',
+        'authz_server',
     );
 
     /**
@@ -146,7 +147,15 @@ class OidcStrategy extends OpauthStrategy{
      */
     public function logoutEndpoint(){
 
-        $url = $this->strategy['authorization_endpoint'] . "/.well-known/openid-configuration";
+        // Per Ivan at https://gitlab.cirg.washington.edu/svn/dhair2/-/merge_requests/910#note_22325 ,
+        // We want to call: 
+        // ${OIDC_AUTHZ_SERVER}/.well-known/openid-configuration
+        // Where OIDC_AUTHZ_SERVER is: https://keycloak.${BASE_DOMAIN}/realms/ltt (per ltt-environments).
+        // What the below is calling: 
+        // https://keycloak.letstalktech.stg.cirg.uw.edu/realms/ltt/protocol/openid-connect/auth/.well-known/openid-configuration?
+        // That's because OIDC_AUTHORIZATION_ENDPOINT is: https://keycloak.${BASE_DOMAIN}/realms/ltt/protocol/openid-connect/auth
+        //$url = $this->strategy['authorization_endpoint'] . "/.well-known/openid-configuration";
+        $url = $this->strategy['authz_server'] . "/.well-known/openid-configuration";
         $openid_configuration_response = $this->serverGet(
             $url,
             //$this->strategy['userinfo_endpoint'],
