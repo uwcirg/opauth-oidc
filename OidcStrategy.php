@@ -144,7 +144,7 @@ class OidcStrategy extends OpauthStrategy{
     /**
      *
      */
-    public function logoutEndpoint(): void{
+    public function logoutEndpoint(){
 
         $url = $this->strategy['authorization_endpoint'] . "/.well-known/openid-configuration";
         $openid_configuration = $this->serverGet($url);
