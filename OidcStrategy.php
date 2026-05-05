@@ -147,8 +147,30 @@ class OidcStrategy extends OpauthStrategy{
     public function logoutEndpoint(){
 
         $url = $this->strategy['authorization_endpoint'] . "/.well-known/openid-configuration";
-        $openid_configuration = $this->serverGet($url);
-        CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's openid_configuration (retrieved from $url):" . print_r($openid_configuration, true));
+        $openid_configuration_response = $this->serverGet(
+            $url,
+            //$this->strategy['userinfo_endpoint'],
+            array(),
+            array('http' => array('header' => "Authorization: Bearer {$auth_data['credentials']['token']}")),
+            $response_headers
+        );
+        if (
+            !preg_match('/^HTTP.+200 OK/mi', $response_headers) or
+            empty($openid_configuration_response)
+        ){
+            $error = array(
+                'code' => 'userinfo_error',
+                'message' => 'Failed when attempting to query for logout endpoint',
+                'raw' => array(
+                    'response' => $openid_configuration_response,
+                    'headers' => $response_headers
+                )
+            );
+
+            $this->errorCallback($error);
+            return;
+        }
+        CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's openid_configuration_response (retrieved from $url):" . print_r($openid_configuration_response, true));
 
     }// public function getLogoutEndpoint(): void{
 
