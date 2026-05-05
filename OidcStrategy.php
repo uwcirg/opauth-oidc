@@ -135,8 +135,22 @@ class OidcStrategy extends OpauthStrategy{
         $this->mapProfile($userinfo, 'sub', 'uid');
         $this->mapProfile($userinfo, 'sub', 'external_id');
         $this->mapProfile($userinfo['access_token_data'], 'realm_access.roles', 'roles');
+
+        $this->logoutEndpoint();
+
         $this->callback();
     }
+
+    /**
+     *
+     */
+    public function logoutEndpoint(): void{
+
+        $url = $this->strategy['authorization_endpoint'] . "/.well-known/openid-configuration";
+        $openid_configuration = $this->serverGet($url);
+        CakeLog::write(LOG_DEBUG, __CLASS__."->".__FUNCTION__."(), here's openid_configuration (retrieved from $url):" . print_r($openid_configuration, true));
+
+    }// public function getLogoutEndpoint(): void{
 
     /**
      * Keycloak POSTs to this to inform of logout from elsewhere.
