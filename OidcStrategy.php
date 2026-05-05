@@ -14,7 +14,7 @@ class OidcStrategy extends OpauthStrategy {
     /**
      * Compulsory config keys, listed as unassociative arrays
      */
-    public ?array $expects = [
+    public array $expects = [
         'client_id',
         'client_secret',
         'authorization_endpoint',
